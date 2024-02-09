@@ -14,38 +14,56 @@
 
 import streamlit as st
 from streamlit.logger import get_logger
+import snowflake.connector
+
+ctx = snowflake.connector.connect(
+    user=st.secrets["user"],
+    password=st.secrets["password"],
+    account=st.secrets["account"]
+    )
+cs = ctx.cursor()
 
 LOGGER = get_logger(__name__)
 
-
 def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
-    )
+    def get_table_list(selected_schema):
+      if selected_schema == "WORLD_BANK_ECONOMIC_INDICATORS":
+        return ["COUNTRY_METADATA"]
+      elif selected_schema == "WORLD_BANK_METADATA":
+        return ["GDP","GOV_EXPENDITURE"]
+      elif selected_schema == "WORLD_BANK_SOCIAL_INDIACTORS":
+        return ["LIFE_EXPECTANCY","ADULT_LITERACY_RATE","PROGRESSION_TO_SECONDARY_SCHOOL"]
+      else:
+        return []
 
-    st.write("# Welcome to Streamlit! 👋")
+    with st.sidebar:
+            st.image('https://frostyfridaychallenges.s3.eu-west-1.amazonaws.com/challenge_12/logo.png')
+            st.title("Instructions:")
+            st.write("- Select the schema from the available.")
+            st.write("- Then select the table which will automatically update to reflect your schema choice.")
+            st.write("- Check that the table corresponds to that which you want to ingest into.")
+            st.write("- Select the file you want to ingest")
+            st.write("- You should see an upload success message detailing how many rows were ingested.")
 
-    st.sidebar.success("Select a demo above.")
+    st.title("Manual CSV File to Snowflake Table Uploader")
+    selected_schema = st.radio(
+        "Select Schema:",
+        ["WORLD_BANK_ECONOMIC_INDICATORS",
+        "WORLD_BANK_METADATA",
+        "WORLD_BANK_SOCIAL_INDIACTORS"])
 
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
-    )
+    table_list = get_table_list(selected_schema)
 
+    selected_table = st.radio(
+        "Select Table to upload to:",
+        table_list
+        )
+
+    st.file_uploader(f"Select file to ingest into {selected_schema}.{selected_table}")
+
+    #   Status message:
+    #   Awaiting file to upload
+    #   Your upload was a success. You uploaded {count} rows.
 
 if __name__ == "__main__":
     run()
